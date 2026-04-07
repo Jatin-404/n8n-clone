@@ -21,6 +21,7 @@ import type { RouteLocation, RouteLocationRaw } from 'vue-router';
 import { useRoute, useRouter } from 'vue-router';
 import { WorkflowDocumentStoreKey } from '@/app/constants/injectionKeys';
 import { useInjectWorkflowId } from '@/app/composables/useInjectWorkflowId';
+import { useMvpMode } from '@/features/shared/mvpMode/useMvpMode';
 
 import { useLocalStorage } from '@vueuse/core';
 import GithubButton from 'vue-github-button';
@@ -39,6 +40,7 @@ const workflowsStore = useWorkflowsStore();
 const workflowsListStore = useWorkflowsListStore();
 const executionsStore = useExecutionsStore();
 const settingsStore = useSettingsStore();
+const { isMvpMode } = useMvpMode();
 
 const activeHeaderTab = ref(MAIN_HEADER_TABS.WORKFLOW);
 const workflowToReturnTo = ref('');
@@ -60,11 +62,19 @@ const executionRoutes: VIEWS[] = [
 	VIEWS.EXECUTION_PREVIEW,
 ];
 const tabBarItems = computed(() => {
-	return [
+	const items = [
 		{ value: MAIN_HEADER_TABS.WORKFLOW, label: locale.baseText('generic.editor') },
 		{ value: MAIN_HEADER_TABS.EXECUTIONS, label: locale.baseText('generic.executions') },
-		{ value: MAIN_HEADER_TABS.EVALUATION, label: locale.baseText('generic.tests') },
 	];
+
+	if (!isMvpMode.value) {
+		items.push({
+			value: MAIN_HEADER_TABS.EVALUATION,
+			label: locale.baseText('generic.tests'),
+		});
+	}
+
+	return items;
 });
 
 const activeNode = computed(() => ndvStore.activeNode);
@@ -117,10 +127,13 @@ function isViewRoute(name: unknown): name is VIEWS {
 function syncTabsWithRoute(to: RouteLocation, from?: RouteLocation): void {
 	// Map route types to their corresponding tab in the header
 	const routeTabMapping = [
-		{ routes: evaluationRoutes, tab: MAIN_HEADER_TABS.EVALUATION },
 		{ routes: executionRoutes, tab: MAIN_HEADER_TABS.EXECUTIONS },
 		{ routes: workflowRoutes, tab: MAIN_HEADER_TABS.WORKFLOW },
 	];
+
+	if (!isMvpMode.value) {
+		routeTabMapping.unshift({ routes: evaluationRoutes, tab: MAIN_HEADER_TABS.EVALUATION });
+	}
 
 	// Update the active tab based on the current route
 	if (to.name && isViewRoute(to.name)) {
@@ -157,7 +170,9 @@ function onTabSelected(tab: MAIN_HEADER_TABS, event: MouseEvent) {
 			break;
 
 		case MAIN_HEADER_TABS.EVALUATION:
-			void navigateToEvaluationsView(openInNewTab);
+			if (!isMvpMode.value) {
+				void navigateToEvaluationsView(openInNewTab);
+			}
 			break;
 
 		default:

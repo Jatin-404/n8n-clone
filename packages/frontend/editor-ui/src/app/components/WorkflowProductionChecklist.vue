@@ -28,6 +28,7 @@ import { N8nSuggestedActions } from '@n8n/design-system';
 import { useSettingsStore } from '@/app/stores/settings.store';
 import { useUsersStore } from '@/features/settings/users/users.store';
 import { WorkflowDocumentStoreKey } from '@/app/constants/injectionKeys';
+import { useMvpMode } from '@/features/shared/mvpMode/useMvpMode';
 
 const props = defineProps<{
 	workflow: IWorkflowDb;
@@ -45,6 +46,7 @@ const sourceControlStore = useSourceControlStore();
 const settingsStore = useSettingsStore();
 const usersStore = useUsersStore();
 const workflowDocumentStore = inject(WorkflowDocumentStoreKey, null);
+const { isMvpMode } = useMvpMode();
 
 const isPopoverOpen = ref(false);
 const cachedSettings = ref<WorkflowSettings | null>(null);
@@ -137,6 +139,7 @@ const availableActions = computed(() => {
 	if (
 		hasPublishedVersion &&
 		hasAINode.value &&
+		!isMvpMode.value &&
 		evaluationStore.isEvaluationEnabled &&
 		!suggestedActionSettings.evaluations?.ignored
 	) {
