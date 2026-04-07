@@ -8,15 +8,21 @@ import { useUIStore } from '../stores/ui.store';
 import { useSettingsStore } from '../stores/settings.store';
 import { hasPermission } from '../utils/rbac/permissions';
 import { MIGRATION_REPORT_TARGET_VERSION } from '@n8n/api-types';
+import { useMvpMode } from '@/features/shared/mvpMode/useMvpMode';
 
 export function useSettingsItems() {
 	const router = useRouter();
 	const i18n = useI18n();
 	const uiStore = useUIStore();
 	const settingsStore = useSettingsStore();
+	const { isMvpMode } = useMvpMode();
 	const { canUserAccessRouteByName } = useUserHelpers(router);
 
 	const settingsItems = computed<IMenuItem[]>(() => {
+		if (isMvpMode.value) {
+			return [];
+		}
+
 		const menuItems: IMenuItem[] = [
 			{
 				id: 'settings-usage-and-plan',

@@ -28,6 +28,7 @@ import { useResourceCenterStore } from '@/experiments/resourceCenter/stores/reso
 import { RESOURCE_CENTER_EXPERIMENT } from '@/app/constants';
 import { useSidebarExpandedExperiment } from '@/experiments/sidebarExpanded';
 import { trackTemplatesClick, TemplateClickSource } from '@/experiments/utils';
+import { useMvpMode } from '@/features/shared/mvpMode/useMvpMode';
 
 const cloudPlanStore = useCloudPlanStore();
 const rootStore = useRootStore();
@@ -37,6 +38,7 @@ const uiStore = useUIStore();
 const versionsStore = useVersionsStore();
 const workflowsStore = useWorkflowsStore();
 const resourceCenterStore = useResourceCenterStore();
+const { isMvpMode } = useMvpMode();
 
 const i18n = useI18n();
 const router = useRouter();
@@ -195,13 +197,13 @@ const mainMenuItems = computed<IMenuItem[]>(() => [
 		id: 'settings',
 		label: i18n.baseText('mainSidebar.settings'),
 		icon: 'settings',
-		available: true,
+		available: !isMvpMode.value && settingsItems.value.length > 0,
 		children: settingsItems.value,
 	},
 ]);
 
 const visibleMenuItems = computed<IMenuItem[]>(() =>
-	mainMenuItems.value.filter((item) => item.available !== false),
+	mainMenuItems.value.filter((item) => !isMvpMode.value && item.available !== false),
 );
 
 const checkOverflow = () => {
@@ -371,8 +373,8 @@ useKeybindings({
 			@logout="onLogout"
 			@select="handleSelect"
 		/>
-		<MainSidebarSourceControl :is-collapsed="isCollapsed" />
-		<ResourceCenterTooltip />
+		<MainSidebarSourceControl v-if="!isMvpMode" :is-collapsed="isCollapsed" />
+		<ResourceCenterTooltip v-if="!isMvpMode" />
 	</N8nResizeWrapper>
 </template>
 

@@ -13,6 +13,8 @@ import { CHAT_VIEW } from '@/features/ai/chatHub/constants';
 
 import { N8nMenuItem, N8nText } from '@n8n/design-system';
 import { hasPermission } from '@/app/utils/rbac/permissions';
+import { useRoute } from 'vue-router';
+import { useMvpMode } from '@/features/shared/mvpMode/useMvpMode';
 
 type Props = {
 	collapsed: boolean;
@@ -23,10 +25,12 @@ const props = defineProps<Props>();
 
 const locale = useI18n();
 const globalEntityCreation = useGlobalEntityCreation();
+const route = useRoute();
 
 const projectsStore = useProjectsStore();
 const settingsStore = useSettingsStore();
 const usersStore = useUsersStore();
+const { isMvpMode } = useMvpMode();
 
 const displayProjects = computed(() => globalEntityCreation.displayProjects.value);
 const isFoldersFeatureEnabled = computed(() => settingsStore.isFoldersFeatureEnabled);
@@ -98,12 +102,55 @@ const chat = computed<IMenuItem>(() => ({
 	beta: true,
 }));
 
+const mvpNavigationItems = computed<IMenuItem[]>(() => [
+	{
+		id: 'workflows',
+		label: locale.baseText('generic.workflows'),
+		icon: 'house',
+		route: {
+			to: { name: VIEWS.WORKFLOWS },
+		},
+	},
+	{
+		id: 'credentials',
+		label: locale.baseText('generic.credentials'),
+		icon: 'key-round',
+		route: {
+			to: { name: VIEWS.CREDENTIALS },
+		},
+	},
+	{
+		id: 'executions',
+		label: locale.baseText('generic.executions'),
+		icon: 'history',
+		route: {
+			to: { name: VIEWS.EXECUTIONS },
+		},
+	},
+]);
+
+const activeMvpTabId = computed(() => {
+	if (route.path.includes('/executions')) {
+		return 'executions';
+	}
+
+	if (route.path.includes('/credentials')) {
+		return 'credentials';
+	}
+
+	return 'workflows';
+});
+
 async function onSourceControlPull() {
 	// Update myProjects for the sidebar display
 	await projectsStore.getMyProjects();
 }
 
 onBeforeMount(async () => {
+	if (isMvpMode.value) {
+		return;
+	}
+
 	await usersStore.fetchUsers({ filter: { isPending: false }, take: 2 });
 	sourceControlEventBus.on('pull', onSourceControlPull);
 });
@@ -116,6 +163,17 @@ onBeforeUnmount(() => {
 <template>
 	<div :class="$style.projects">
 		<div :class="[$style.home, props.collapsed ? $style.collapsed : '']">
+			<template v-if="isMvpMode">
+				<N8nMenuItem
+					v-for="item in mvpNavigationItems"
+					:key="item.id"
+					:item="item"
+					:compact="props.collapsed"
+					:active="activeMvpTabId === item.id"
+					:data-test-id="`mvp-nav-${item.id}`"
+				/>
+			</template>
+			<template v-else>
 			<N8nMenuItem
 				:item="home"
 				:compact="props.collapsed"
@@ -146,9 +204,11 @@ onBeforeUnmount(() => {
 				:active="activeTabId === 'chat'"
 				data-test-id="project-chat-menu-item"
 			/>
+			</template>
 		</div>
 		<N8nText
 			v-if="
+				!isMvpMode &&
 				!props.collapsed && projectsStore.isTeamProjectFeatureEnabled && displayProjects.length > 0
 			"
 			:class="[$style.projectsLabel]"
@@ -160,7 +220,7 @@ onBeforeUnmount(() => {
 			{{ locale.baseText('projects.menu.title') }}
 		</N8nText>
 		<div
-			v-if="projectsStore.isTeamProjectFeatureEnabled || isFoldersFeatureEnabled"
+			v-if="!isMvpMode && (projectsStore.isTeamProjectFeatureEnabled || isFoldersFeatureEnabled)"
 			:class="$style.projectItems"
 		>
 			<N8nMenuItem

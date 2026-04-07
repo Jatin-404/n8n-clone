@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { useUsageStore } from '@/features/settings/usage/usage.store';
 import { useAsyncState } from '@vueuse/core';
-import { EVALUATIONS_DOCS_URL } from '@/app/constants';
 import { useTelemetry } from '@/app/composables/useTelemetry';
 import { useToast } from '@/app/composables/useToast';
 import { useI18n } from '@n8n/i18n';
 import { useEvaluationStore } from '../evaluation.store';
 import { useSourceControlStore } from '@/features/integrations/sourceControl.ee/sourceControl.store';
+import { useMvpMode } from '@/features/shared/mvpMode/useMvpMode';
 
 import { computed, watch } from 'vue';
 import EvaluationsPaywall from '../components/Paywall/EvaluationsPaywall.vue';
 import SetupWizard from '../components/SetupWizard/SetupWizard.vue';
 
-import { N8nCallout, N8nLink, N8nText } from '@n8n/design-system';
+import { N8nCallout, N8nText } from '@n8n/design-system';
 const props = defineProps<{
 	name: string;
 }>();
@@ -23,9 +23,10 @@ const telemetry = useTelemetry();
 const toast = useToast();
 const locale = useI18n();
 const sourceControlStore = useSourceControlStore();
+const { isMvpMode } = useMvpMode();
 
 const evaluationsLicensed = computed(() => {
-	return usageStore.workflowsWithEvaluationsLimit !== 0;
+	return isMvpMode.value || usageStore.workflowsWithEvaluationsLimit !== 0;
 });
 
 const isProtectedEnvironment = computed(() => {
@@ -60,6 +61,10 @@ async function runTest() {
 }
 
 const evaluationsQuotaExceeded = computed(() => {
+	if (isMvpMode.value) {
+		return false;
+	}
+
 	return (
 		usageStore.workflowsWithEvaluationsLimit !== -1 &&
 		usageStore.workflowsWithEvaluationsCount >= usageStore.workflowsWithEvaluationsLimit &&
@@ -114,27 +119,16 @@ watch(
 					</N8nText>
 					<N8nText tag="p" size="small" color="text-base" :class="$style.description">
 						{{ locale.baseText('evaluations.setupWizard.description') }}
-						<N8nLink size="small" :href="EVALUATIONS_DOCS_URL">{{
-							locale.baseText('evaluations.setupWizard.moreInfo')
-						}}</N8nLink>
 					</N8nText>
 				</div>
 
 				<N8nCallout v-if="isProtectedEnvironment" theme="info" icon="info">
 					{{ locale.baseText('evaluations.readOnlyNotice') }}
 				</N8nCallout>
-				<div v-else :class="$style.config">
-					<iframe
-						style="min-width: 500px"
-						width="500"
-						height="280"
-						src="https://www.youtube.com/embed/5LlF196PKaE"
-						title="n8n Evaluation quickstart"
-						frameborder="0"
-						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-						referrerpolicy="strict-origin-when-cross-origin"
-						allowfullscreen
-					></iframe>
+				<div
+					v-else
+					:class="[$style.config, { [$style.configSingleColumn]: isMvpMode || evaluationsLicensed }]"
+				>
 					<SetupWizard v-if="evaluationsLicensed" @run-test="runTest" />
 					<EvaluationsPaywall v-else />
 				</div>
@@ -170,6 +164,10 @@ watch(
 	display: flex;
 	flex-direction: row;
 	gap: var(--spacing--lg);
+}
+
+.configSingleColumn {
+	max-width: 720px;
 }
 
 .setupDescription {

@@ -44,6 +44,7 @@ import { useUIStore } from '@/app/stores/ui.store';
 import { useWorkflowsStore } from '@/app/stores/workflows.store';
 import { useWorkflowsListStore } from '@/app/stores/workflowsList.store';
 import { WorkflowDocumentStoreKey } from '@/app/constants/injectionKeys';
+import { useMvpMode } from '@/features/shared/mvpMode/useMvpMode';
 
 const WORKFLOW_NAME_BP_TO_WIDTH: { [key: string]: number } = {
 	XS: 150,
@@ -69,6 +70,7 @@ const uiStore = useUIStore();
 const workflowsStore = useWorkflowsStore();
 const workflowsListStore = useWorkflowsListStore();
 const projectsStore = useProjectsStore();
+const { isMvpMode } = useMvpMode();
 const collaborationStore = useCollaborationStore();
 const sourceControlStore = useSourceControlStore();
 const foldersStore = useFoldersStore();
@@ -382,7 +384,23 @@ onBeforeUnmount(() => {
 			data-test-id="canvas-breadcrumbs"
 		>
 			<template #default="{ bp }">
+				<div v-if="isMvpMode" :class="$style['mvp-title']">
+					<N8nInlineTextEdit
+						ref="renameInput"
+						:key="id"
+						placeholder="Workflow name"
+						data-test-id="workflow-name-input"
+						class="name"
+						:model-value="name"
+						:max-length="MAX_WORKFLOW_NAME_LENGTH"
+						:max-width="WORKFLOW_NAME_BP_TO_WIDTH[bp]"
+						:read-only="readOnlyActions"
+						:disabled="readOnlyActions"
+						@update:model-value="onNameSubmit"
+					/>
+				</div>
 				<FolderBreadcrumbs
+					v-else
 					:current-folder="currentFolderForBreadcrumbs"
 					:current-folder-as-link="true"
 					@item-selected="onBreadcrumbsItemSelected"
@@ -560,6 +578,12 @@ $--header-spacing: 20px;
 	font-size: var(--font-size--xl);
 	color: var(--color--foreground);
 	padding: var(--spacing--3xs) var(--spacing--4xs) var(--spacing--4xs);
+}
+
+.mvp-title {
+	display: flex;
+	align-items: center;
+	min-width: 0;
 }
 
 .closeNodeViewDiscovery {

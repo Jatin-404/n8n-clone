@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const fs = require('fs');
 const path = require('path');
 
 // Make sure that it also find the config folder when it
@@ -37,7 +38,21 @@ require('reflect-metadata');
 // Also, do not use `inE2ETests` from constants here, because that'd end up code that might read from `process.env` before the values are loaded from an `.env` file.
 if (process.env.E2E_TESTS !== 'true') {
 	// Loading dotenv early ensures that `process.env` is up-to-date everywhere in code
-	require('dotenv').config({ quiet: true });
+	const dotenv = require('dotenv');
+	const candidateDirectories = [
+		process.cwd(),
+		path.resolve(__dirname, '..'),
+		path.resolve(__dirname, '..', '..', '..'),
+	];
+
+	for (const directory of new Set(candidateDirectories)) {
+		for (const fileName of ['.env.local', '.env']) {
+			const filePath = path.join(directory, fileName);
+			if (fs.existsSync(filePath)) {
+				dotenv.config({ path: filePath, quiet: true });
+			}
+		}
+	}
 }
 
 // Load config early to ensure `N8N_CONFIG_FILES` values are populated into `GlobalConfig`

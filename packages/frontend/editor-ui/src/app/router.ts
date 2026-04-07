@@ -24,6 +24,7 @@ import { useRecentResources } from '@/features/shared/commandBar/composables/use
 import { usePostHog } from '@/app/stores/posthog.store';
 import { TEMPLATE_SETUP_EXPERIENCE } from '@/app/constants/experiments';
 import { useDynamicCredentials } from '@/features/resolvers/composables/useDynamicCredentials';
+import { useMvpMode } from '@/features/shared/mvpMode/useMvpMode';
 
 const ChangePasswordView = async () =>
 	await import('@/features/core/auth/views/ChangePasswordView.vue');
@@ -966,6 +967,49 @@ export const routes: RouteRecordRaw[] = [
 	},
 ];
 
+const MVP_BLOCKED_ROUTE_NAMES = new Set<VIEWS>([
+	VIEWS.COLLECTION,
+	VIEWS.TEMPLATE,
+	VIEWS.TEMPLATE_SETUP,
+	VIEWS.TEMPLATES,
+	VIEWS.RESOURCE_CENTER,
+	VIEWS.RESOURCE_CENTER_SECTION,
+	VIEWS.SIGNIN,
+	VIEWS.SIGNUP,
+	VIEWS.SIGNOUT,
+	VIEWS.SETUP,
+	VIEWS.FORGOT_PASSWORD,
+	VIEWS.CHANGE_PASSWORD,
+	VIEWS.SETTINGS,
+	VIEWS.USAGE,
+	VIEWS.MIGRATION_REPORT,
+	VIEWS.MIGRATION_RULE_REPORT,
+	VIEWS.PERSONAL_SETTINGS,
+	VIEWS.SECURITY_SETTINGS,
+	VIEWS.USERS_SETTINGS,
+	VIEWS.AI_SETTINGS,
+	VIEWS.RESOLVERS,
+	VIEWS.PROJECT_ROLE_VIEW,
+	VIEWS.PROJECT_ROLES_SETTINGS,
+	VIEWS.PROJECT_NEW_ROLE,
+	VIEWS.PROJECT_ROLE_SETTINGS,
+	VIEWS.API_SETTINGS,
+	VIEWS.SOURCE_CONTROL,
+	VIEWS.EXTERNAL_SECRETS_SETTINGS,
+	VIEWS.SSO_SETTINGS,
+	VIEWS.LOG_STREAMING_SETTINGS,
+	VIEWS.WORKER_VIEW,
+	VIEWS.COMMUNITY_NODES,
+	VIEWS.LDAP_SETTINGS,
+	VIEWS.SAML_ONBOARDING,
+	VIEWS.SHARED_WITH_ME,
+	VIEWS.SHARED_WORKFLOWS,
+	VIEWS.SHARED_CREDENTIALS,
+	VIEWS.PROJECT_SETTINGS,
+	VIEWS.TEMPLATE_IMPORT,
+	VIEWS.WORKFLOW_ONBOARDING,
+]);
+
 function withCanvasReadOnlyMeta(route: RouteRecordRaw) {
 	if (!route.meta) {
 		route.meta = {};
@@ -1013,6 +1057,11 @@ router.beforeEach(async (to: RouteLocationNormalized, from, next) => {
 			}
 
 			return next({ name: VIEWS.SETUP });
+		}
+
+		const { isMvpMode } = useMvpMode();
+		if (to.name && isMvpMode.value && MVP_BLOCKED_ROUTE_NAMES.has(to.name as VIEWS)) {
+			return next({ name: VIEWS.WORKFLOWS });
 		}
 
 		/**

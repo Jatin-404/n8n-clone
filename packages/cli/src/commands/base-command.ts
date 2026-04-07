@@ -39,6 +39,7 @@ import { ShutdownService } from '@/shutdown/shutdown.service';
 import { resolveBackendHealthEndpointPath } from '@/utils/health-endpoint.util';
 import { WorkflowHistoryManager } from '@/workflows/workflow-history/workflow-history-manager';
 import { LoadNodesAndCredentials } from '@/load-nodes-and-credentials';
+import { MvpModeService } from '@/services/mvp-mode.service';
 
 export abstract class BaseCommand<F = never> {
 	readonly flags: F;
@@ -142,6 +143,13 @@ export abstract class BaseCommand<F = never> {
 			.catch(
 				async (error: Error) =>
 					await this.exitWithCrash('There was an error running database migrations', error),
+			);
+
+		await Container.get(MvpModeService)
+			.ensureSingleUser()
+			.catch(
+				async (error: Error) =>
+					await this.exitWithCrash('There was an error initializing WorkflowAI MVP mode', error),
 			);
 
 		if (process.env.EXECUTIONS_PROCESS === 'own') process.exit(-1);

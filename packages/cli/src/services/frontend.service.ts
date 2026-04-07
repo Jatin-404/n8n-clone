@@ -31,6 +31,7 @@ import {
 } from '@/workflows/workflow-history/workflow-history-helper';
 import { AiUsageService } from './ai-usage.service';
 import { UrlService } from './url.service';
+import { WORKFLOWAI_MVP_MODE_ENV } from './mvp-mode.service';
 
 /**
  * IMPORTANT: Only add settings that are absolutely necessary for non-authenticated pages
@@ -151,6 +152,10 @@ export class FrontendService {
 	}
 
 	private async getShowSetupOnFirstLoad() {
+		if (process.env[WORKFLOWAI_MVP_MODE_ENV] === 'true') {
+			return false;
+		}
+
 		const previewMode = process.env.N8N_PREVIEW_MODE === 'true';
 		const hasInstanceOwner = await this.ownershipService.hasInstanceOwner();
 		// In preview mode, skip the setup redirect to allow accessing demo routes

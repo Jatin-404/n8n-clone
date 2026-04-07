@@ -4,7 +4,7 @@ import { GlobalConfig } from '@n8n/config';
 import { Time } from '@n8n/constants';
 import type { AuthenticatedRequest, User } from '@n8n/db';
 import { GLOBAL_OWNER_ROLE, InvalidAuthTokenRepository, UserRepository } from '@n8n/db';
-import { Service } from '@n8n/di';
+import { Container, Service } from '@n8n/di';
 import { createHash } from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
@@ -16,6 +16,7 @@ import { License } from '@/license';
 import { MfaService } from '@/mfa/mfa.service';
 import { JwtService } from '@/services/jwt.service';
 import { UrlService } from '@/services/url.service';
+import { MvpModeService, WORKFLOWAI_MVP_MODE_ENV } from '@/services/mvp-mode.service';
 
 interface AuthJwtPayload {
 	/** User Id */
@@ -147,6 +148,14 @@ export class AuthService {
 				}
 			}
 
+			if (!req.user) {
+				const mvpUser = await this.resolveMvpUser();
+				if (mvpUser) {
+					req.user = mvpUser;
+					req.authInfo = { usedMfa: true };
+				}
+			}
+
 			const isPreviewMode = process.env.N8N_PREVIEW_MODE === 'true';
 			const shouldSkipAuth = (allowSkipPreviewAuth && isPreviewMode) || allowUnauthenticated;
 
@@ -154,6 +163,14 @@ export class AuthService {
 			else if (shouldSkipAuth) next();
 			else res.status(401).json({ status: 'error', message: 'Unauthorized' });
 		};
+	}
+
+	private async resolveMvpUser(): Promise<User | null> {
+		if (process.env[WORKFLOWAI_MVP_MODE_ENV] !== 'true') {
+			return null;
+		}
+
+		return await Container.get(MvpModeService).ensureSingleUser();
 	}
 
 	getCookieToken(req: Request) {

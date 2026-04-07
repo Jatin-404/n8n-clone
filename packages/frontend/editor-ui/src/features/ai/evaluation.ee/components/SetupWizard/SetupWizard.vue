@@ -8,6 +8,7 @@ import StepHeader from '../shared/StepHeader.vue';
 import { useRouter } from 'vue-router';
 import { useUsageStore } from '@/features/settings/usage/usage.store';
 import { usePageRedirectionHelper } from '@/app/composables/usePageRedirectionHelper';
+import { useMvpMode } from '@/features/shared/mvpMode/useMvpMode';
 import { I18nT } from 'vue-i18n';
 
 import { N8nButton, N8nCallout, N8nText } from '@n8n/design-system';
@@ -21,12 +22,17 @@ const workflowsStore = useWorkflowsStore();
 const evaluationStore = useEvaluationStore();
 const usageStore = useUsageStore();
 const pageRedirectionHelper = usePageRedirectionHelper();
+const { isMvpMode } = useMvpMode();
 
 const hasRuns = computed(() => {
 	return evaluationStore.testRunsByWorkflowId[workflowsStore.workflow.id]?.length > 0;
 });
 
 const evaluationsAvailable = computed(() => {
+	if (isMvpMode.value) {
+		return true;
+	}
+
 	return (
 		usageStore.workflowsWithEvaluationsLimit === -1 ||
 		usageStore.workflowsWithEvaluationsCount < usageStore.workflowsWithEvaluationsLimit
@@ -34,10 +40,22 @@ const evaluationsAvailable = computed(() => {
 });
 
 const evaluationsQuotaExceeded = computed(() => {
+	if (isMvpMode.value) {
+		return false;
+	}
+
 	return (
 		usageStore.workflowsWithEvaluationsLimit !== -1 &&
 		usageStore.workflowsWithEvaluationsCount >= usageStore.workflowsWithEvaluationsLimit &&
 		!hasRuns.value
+	);
+});
+
+const showQuotaNote = computed(() => {
+	return (
+		!isMvpMode.value &&
+		usageStore.workflowsWithEvaluationsLimit !== -1 &&
+		evaluationsAvailable.value
 	);
 });
 
@@ -202,10 +220,7 @@ function onSeePlans() {
 							{{ locale.baseText('evaluations.setupWizard.step3.skip') }}
 						</N8nButton>
 					</div>
-					<div
-						v-if="usageStore.workflowsWithEvaluationsLimit !== -1 && evaluationsAvailable"
-						:class="$style.quotaNote"
-					>
+					<div v-if="showQuotaNote" :class="$style.quotaNote">
 						<N8nText size="xsmall" color="text-base">
 							<I18nT keypath="evaluations.setupWizard.step3.notice" scope="global">
 								<template #link>
