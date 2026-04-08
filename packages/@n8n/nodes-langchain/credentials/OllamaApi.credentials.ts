@@ -1,8 +1,9 @@
 import type {
+	ICredentialDataDecryptedObject,
 	ICredentialTestRequest,
 	ICredentialType,
+	IHttpRequestOptions,
 	INodeProperties,
-	IAuthenticateGeneric,
 } from 'n8n-workflow';
 
 export class OllamaApi implements ICredentialType {
@@ -18,7 +19,7 @@ export class OllamaApi implements ICredentialType {
 			name: 'baseUrl',
 			required: true,
 			type: 'string',
-			default: 'http://localhost:11434',
+			default: 'http://127.0.0.1:11434',
 		},
 		{
 			displayName: 'API Key',
@@ -31,14 +32,28 @@ export class OllamaApi implements ICredentialType {
 		},
 	];
 
-	authenticate: IAuthenticateGeneric = {
-		type: 'generic',
-		properties: {
-			headers: {
-				Authorization: '=Bearer {{$credentials.apiKey}}',
-			},
-		},
-	};
+	async authenticate(
+		credentials: ICredentialDataDecryptedObject,
+		requestOptions: IHttpRequestOptions,
+	) {
+		requestOptions.headers ??= {};
+
+		const normalizeLocalUrl = (value: string) => value.replace('://localhost', '://127.0.0.1');
+
+		if (typeof requestOptions.baseURL === 'string') {
+			requestOptions.baseURL = normalizeLocalUrl(requestOptions.baseURL);
+		}
+
+		if (typeof requestOptions.url === 'string') {
+			requestOptions.url = normalizeLocalUrl(requestOptions.url);
+		}
+
+		if (typeof credentials.apiKey === 'string' && credentials.apiKey.length > 0) {
+			requestOptions.headers.Authorization = `Bearer ${credentials.apiKey}`;
+		}
+
+		return requestOptions;
+	}
 
 	test: ICredentialTestRequest = {
 		request: {

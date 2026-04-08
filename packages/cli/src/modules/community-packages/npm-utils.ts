@@ -5,6 +5,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const asyncExecFile = promisify(execFile);
+const WINDOWS_COMMAND_SHELL = process.env.ComSpec ?? process.env.COMSPEC ?? 'cmd.exe';
 
 const REQUEST_TIMEOUT = 30000;
 
@@ -68,8 +69,10 @@ export async function executeNpmCommand(
 	const { cwd, doNotHandleError } = options;
 
 	try {
-		const { stdout } = await asyncExecFile('npm', args, cwd ? { cwd } : undefined);
-		return typeof stdout === 'string' ? stdout : stdout.toString();
+		const executable = process.platform === 'win32' ? WINDOWS_COMMAND_SHELL : 'npm';
+		const commandArgs = process.platform === 'win32' ? ['/d', '/s', '/c', 'npm', ...args] : args;
+		const { stdout } = await asyncExecFile(executable, commandArgs, cwd ? { cwd } : undefined);
+		return typeof stdout === 'string' ? stdout : String(stdout);
 	} catch (error) {
 		if (doNotHandleError) {
 			throw error;
