@@ -11,6 +11,7 @@ import { CHAT_VIEW } from '@/features/ai/chatHub/constants';
 import { useSettingsStore } from '@/app/stores/settings.store';
 import { useProjectsStore } from '@/features/collaboration/projects/projects.store';
 import { useTemplatesStore } from '@/features/workflows/templates/templates.store';
+import { useMvpMode } from '@/features/shared/mvpMode/useMvpMode';
 
 const ITEM_ID = {
 	CHAT_HUB: 'chat-hub',
@@ -35,6 +36,7 @@ export function useGenericCommands(): CommandGroup {
 	const settingsStore = useSettingsStore();
 	const projectsStore = useProjectsStore();
 	const templatesStore = useTemplatesStore();
+	const { isMvpMode } = useMvpMode();
 	const { getReportingURL } = useBugReporting();
 
 	const genericCommands = computed<CommandBarItem[]>(() => [
@@ -98,7 +100,7 @@ export function useGenericCommands(): CommandGroup {
 					},
 				]
 			: []),
-		...(projectsStore.canViewProjects
+		...(projectsStore.canViewProjects && !isMvpMode.value
 			? [
 					{
 						id: ITEM_ID.VARIABLES,

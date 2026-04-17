@@ -12,6 +12,7 @@ import { N8nTabs } from '@n8n/design-system';
 import { useProjectsStore } from '../projects.store';
 import { ProjectTypes } from '../projects.types';
 import { useTelemetry } from '@/app/composables/useTelemetry';
+import { useMvpMode } from '@/features/shared/mvpMode/useMvpMode';
 type Props = {
 	showSettings?: boolean;
 	showExecutions?: boolean;
@@ -30,6 +31,7 @@ const locale = useI18n();
 const route = useRoute();
 const projectStore = useProjectsStore();
 const telemetry = useTelemetry();
+const { isMvpMode } = useMvpMode();
 
 const selectedTab = ref<RouteRecordName | null | undefined>('');
 
@@ -110,7 +112,7 @@ const options = computed<Array<TabOptions<string>>>(() => {
 		tabs.push(createTab('mainSidebar.executions', 'executions', routes));
 	}
 
-	if (props.pageType === 'overview' || isTeamProject.value) {
+	if (!isMvpMode.value && (props.pageType === 'overview' || isTeamProject.value)) {
 		tabs.push(createTab('mainSidebar.variables', 'variables', routes));
 	}
 
